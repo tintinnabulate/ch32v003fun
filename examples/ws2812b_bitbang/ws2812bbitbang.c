@@ -47,14 +47,15 @@ int main(void)
 
         // led_cold_white();
         // led_warm_white();
-        led_rainbows(10, num_leds); // variables are delay speed in mS and width (number of leds)
+        //led_rainbows(10, num_leds); // variables are delay speed in mS and width (number of leds)
+        led_trans(100, num_leds);
         // led_red(255); // variable is brightness 0-255
         // led_green(10); // variable is brightness 0-255
         // led_blue(10); // variable is brightness 0-255
-        // led_custom(255,255,255); // set custom clour (red, green, blue) 0-255 RGB
+        //led_custom(255,255,255); // set custom clour (red, green, blue) 0-255 RGB
         // led_rgb_flash(200, 2); // variables are speed in mS delay and brightness
         // led_white_flash(50, 10); // variables are max and min flash speed
-        // led_white_fade(4); // variable is speed in mS delay
+        //led_white_fade(4); // variable is speed in mS delay
 
     } // end of while loop
 } // end of main

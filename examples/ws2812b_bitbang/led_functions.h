@@ -130,6 +130,45 @@ void led_rainbows(uint16_t speed, uint16_t width)
   }
 }
 
+// used by trans
+uint8_t * twheel(uint8_t wheel_pos) {
+  static uint8_t c[3];
+
+  if(wheel_pos < 85) { // pink
+   c[0]=91;
+   c[1]=206;
+   c[2]=250;
+  } else if (wheel_pos < 170) { // light blue
+   wheel_pos -= 85;
+   c[0]=245;
+   c[1]=169;
+   c[2]=184;
+  } else { // white
+   wheel_pos -= 170;
+   c[0]=255;
+   c[1]=255;
+   c[2]=255;
+  }
+  return c;
+}
+
+void led_trans(uint16_t speed, uint16_t width)
+{
+  uint8_t *c;
+  uint16_t i, j;
+
+  for(j=0; j<256; j++) { // 5 cycles of all colors on wheel
+    for(i=0; i< width; i++) {
+      c=twheel(((i * 256 / width) + j) & 255);
+      BUFFER_LEDS[i][0] = *c ;
+      BUFFER_LEDS[i][1] = *(c+1) ;
+      BUFFER_LEDS[i][2] = *(c+2) ;
+    }
+    showtime(BUFFER_LEDS);
+    Delay_Ms(speed);
+  }
+}
+
 // This function applies the sine wave to the LED colors and updates the buffer
 void led_white_fade(uint16_t speed)
 {
