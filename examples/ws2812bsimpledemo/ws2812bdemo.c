@@ -49,7 +49,7 @@ int main()
 
 	int tweendir = 0;
 
-    uint32_t * data;
+    uint8_t * data;
 
 	while(1)
 	{
@@ -78,7 +78,7 @@ int main()
 			phases[k] += ((((rands[k&0xff])+0xf)<<2) + (((rands[k&0xff])+0xf)<<1))>>1;
 		}
 
-        data = WS2812BLEDCallback(k);
+        data = (uint8_t *) WS2812BLEDCallback(k);
 
 		WS2812BSimpleSend( GPIOD, 6, data, 24 );
 	}
