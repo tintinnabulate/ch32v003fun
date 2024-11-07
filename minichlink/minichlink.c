@@ -673,9 +673,10 @@ keep_going:
 					if ( offset == 0x1ffff000 ) MCF.HaltMode( dev, HALT_MODE_HALT_BUT_NO_RESET ); // do not reset if writing bootloader, even if it is considered flash memory
 					else MCF.HaltMode( dev, HALT_MODE_HALT_AND_RESET );
 				}
-
+				
 				if( MCF.WriteBinaryBlob )
 				{
+				        printf("Writing image\n");
 					if( MCF.WriteBinaryBlob( dev, offset, len, image ) )
 					{
 						fprintf( stderr, "Error: Fault writing image.\n" );
@@ -687,7 +688,7 @@ keep_going:
 					goto unimplemented;
 				}
 
-				printf( "Image written.\n" );
+				printf( "\nImage written.\n" );
 
 				free( image );
 				break;
@@ -860,6 +861,8 @@ int DefaultSetupInterface( void * dev )
 	MCF.DelayUS( dev, 16000 );
 	MCF.WriteReg32( dev, DMSHDWCFGR, 0x5aa50000 | (1<<10) ); // Shadow Config Reg
 	MCF.WriteReg32( dev, DMCFGR, 0x5aa50000 | (1<<10) ); // CFGR (1<<10 == Allow output from slave)
+	MCF.WriteReg32( dev, DMSHDWCFGR, 0x5aa50000 | (1<<10) ); // sometimes doing this just once isn't enough
+	MCF.WriteReg32( dev, DMCFGR, 0x5aa50000 | (1<<10) ); // And this is about as fast as checking, so why not.
 
 	// Read back chip status.  This is really basic.
 	uint32_t reg = 0;
@@ -1321,6 +1324,8 @@ int DefaultWriteBinaryBlob( void * dev, uint32_t address_to_write, uint32_t blob
 				{
 					uint32_t writeword;
 					memcpy( &writeword, blob + rsofar, 4 );
+					// WARNING: Just so you know, this is ACTUALLY doing the write AND if writing to flash, doing the following:
+					// FLASH->CTLR = CR_PAGE_PG | FLASH_CTLR_BUF_LOAD AFTER it does the write.  THIS IS REQUIRED.
 					MCF.WriteWord( dev, j*4+base, writeword );
 					rsofar += 4;
 				}
@@ -1366,6 +1371,8 @@ int DefaultWriteBinaryBlob( void * dev, uint32_t address_to_write, uint32_t blob
 					int j;
 					for( j = 0; j < sectorsize/4; j++ )
 					{
+						// WARNING: Just so you know, this is ACTUALLY doing the write AND if writing to flash, doing the following:
+						// FLASH->CTLR = CR_PAGE_PG | FLASH_CTLR_BUF_LOAD AFTER it does the write.  THIS IS REQUIRED.
 						MCF.WriteWord( dev, j*4+base, *(uint32_t*)(tempblock + j * 4) );
 						rsofar += 4;
 					}

@@ -13846,7 +13846,7 @@ extern "C" {
 #ifndef __ASSEMBLER__
 
 // Initialize the ADC calibrate it and set some sane defaults.
-void funAnalogInit();
+void funAnalogInit( void );
 
 // Read an analog input (not a GPIO pin number)
 // Be sure to call funAnalogInit first.
@@ -13988,13 +13988,14 @@ void SystemInit(void);
 
 void SetupUART( int uartBRR );
 
-void WaitForDebuggerToAttach();
+// Returns 1 if timeout reached, 0 otherwise.
+int WaitForDebuggerToAttach( int timeout_ms );
 
 // Just a definition to the internal _write function.
 int _write(int fd, const char *buf, int size);
 
 // Call this to busy-wait the polling of input.
-void poll_input();
+void poll_input( void );
 
 // Receiving bytes from host.  Override if you wish.
 void handle_debug_input( int numbytes, uint8_t * data );
