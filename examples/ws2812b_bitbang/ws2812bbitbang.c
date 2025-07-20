@@ -1,8 +1,8 @@
-#include "ch32v003fun.h"
+#include "ch32fun.h"
 #include <stdio.h>
 
 // Define the number of LEDs in the strip
-#define num_leds 29
+#define num_leds 27
 
 // Include the sine and rand lookup tables
 #include "lookups.h"
@@ -23,7 +23,7 @@
 // The main function initialises the Delay and GPIO, sets the initial color values of the LED strip to: off
 int main(void)
 {
-    Delay_Ms ( 1000 ); // Delay to give us a chance to reprogram
+    //Delay_Ms ( 1000 ); // Delay to give us a chance to reprogram
 
     SystemInit();
 
@@ -52,7 +52,7 @@ int main(void)
         // led_green(10); // variable is brightness 0-255
         // led_blue(10); // variable is brightness 0-255
         // led_custom(255,255,255); // set custom clour (red, green, blue) 0-255 RGB
-        // led_rgb_flash(200, 2); // variables are speed in mS delay and brightness
+        //led_rgb_flash(200, 2); // variables are speed in mS delay and brightness
         // led_white_flash(50, 10); // variables are max and min flash speed
         // led_white_fade(4); // variable is speed in mS delay
 
