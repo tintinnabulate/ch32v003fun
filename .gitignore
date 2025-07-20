@@ -9,5 +9,5 @@
 minichlink/minichlink
 minichlink/minichlink.so
 compile_commands.json
-.clangd
 .cache
+ch32fun/generated_*.ld

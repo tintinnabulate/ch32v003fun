@@ -1,36 +1,34 @@
-#include "ch32v003fun.h"
+#include "ch32fun.h"
 #include <stdio.h>
+
+// use defines to make more meaningful names for our GPIO pins
+#define PIN_1 PD0
+#define PIN_K PD4
+#define PIN_BOB PD6
+#define PIN_KEVIN PC0
 
 int main()
 {
 	SystemInit();
 
-	// Enable GPIOs
-	RCC->APB2PCENR |= RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOC;
-
-	// GPIO D0 Push-Pull
-	GPIOD->CFGLR &= ~(0xf<<(4*0));
-	GPIOD->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP)<<(4*0);
-
-	// GPIO D4 Push-Pull
-	GPIOD->CFGLR &= ~(0xf<<(4*4));
-	GPIOD->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP)<<(4*4);
-
-	// GPIO D6 Push-Pull
-	GPIOD->CFGLR &= ~(0xf<<(4*6));
-	GPIOD->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP)<<(4*6);
-
-	// GPIO C0 Push-Pull
-	GPIOC->CFGLR &= ~(0xf<<(4*0));
-	GPIOC->CFGLR |= (GPIO_Speed_10MHz | GPIO_CNF_OUT_PP)<<(4*0);
+	funGpioInitAll(); // Enable GPIOs
+	
+	funPinMode( PIN_1,     GPIO_Speed_10MHz | GPIO_CNF_OUT_PP ); // Set PIN_1 to output
+	funPinMode( PIN_K,     GPIO_Speed_10MHz | GPIO_CNF_OUT_PP ); // Set PIN_K to output
+	funPinMode( PIN_BOB,   GPIO_Speed_10MHz | GPIO_CNF_OUT_PP ); // Set PIN_BOB to output
+	funPinMode( PIN_KEVIN, GPIO_Speed_10MHz | GPIO_CNF_OUT_PP ); // Set PIN_KEVIN to output
 
 	while(1)
 	{
-		GPIOD->BSHR = (1<<0) | (1<<4) | (1<<6);	 // Turn on GPIOs
-		GPIOC->BSHR = (1<<0);
+		funDigitalWrite( PIN_1,     FUN_HIGH ); // Turn on PIN_1
+		funDigitalWrite( PIN_K,     FUN_HIGH ); // Turn on PIN_K
+		funDigitalWrite( PIN_BOB,   FUN_HIGH ); // Turn on PIN_BOB
+		funDigitalWrite( PIN_KEVIN, FUN_HIGH ); // Turn on PIN_KEVIN
 		Delay_Ms( 250 );
-		GPIOD->BSHR = (1<<16) | (1<<(16+4)) | (1<<(16+6)); // Turn off GPIOs
-		GPIOC->BSHR = (1<<16);
+		funDigitalWrite( PIN_1,     FUN_LOW );  // Turn off PIN_1
+		funDigitalWrite( PIN_K,     FUN_LOW );  // Turn off PIN_K
+		funDigitalWrite( PIN_BOB,   FUN_LOW );  // Turn off PIN_BOB
+		funDigitalWrite( PIN_KEVIN, FUN_LOW );  // Turn off PIN_KEVIN
 		Delay_Ms( 250 );
 	}
 }

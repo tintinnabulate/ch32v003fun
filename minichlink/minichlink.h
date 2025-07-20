@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+enum RAMSplit;
+
 struct MiniChlinkFunctions
 {
 	// All functions return 0 if OK, negative number if fault, positive number as status code.
@@ -19,14 +21,17 @@ struct MiniChlinkFunctions
 	int (*Control5v)( void * dev, int bOn );
 	int (*Unbrick)( void * dev ); // Turns on chip, erases everything, powers off.
 
+	int (*DetermineChipType)( void * dev ); // Determine chip type (may need to pause chip, so only do if you really need to know)
+
 	int (*Exit)( void * dev );
 
 	int (*HaltMode)( void * dev, int mode ); //0 for halt, 1 for reset, 2 for resume
 	int (*ConfigureNRSTAsGPIO)( void * dev, int one_if_yes_gpio );
 	int (*ConfigureReadProtection)( void * dev, int one_if_yes_protect );
+	int (*SetSplit)( void * dev, enum RAMSplit split );
 
 	// No boundary or limit rules.  Must support any combination of alignment and size.
-	int (*WriteBinaryBlob)( void * dev, uint32_t address_to_write, uint32_t blob_size, uint8_t * blob );
+	int (*WriteBinaryBlob)( void * dev, uint32_t address_to_write, uint32_t blob_size, const uint8_t * blob );
 	int (*ReadBinaryBlob)( void * dev, uint32_t address_to_read_from, uint32_t read_size, uint8_t * blob );
 
 	int (*Erase)( void * dev, uint32_t address, uint32_t length, int type ); //type = 0 for fast, 1 for whole-chip
@@ -57,7 +62,7 @@ struct MiniChlinkFunctions
 	int (*PrintChipInfo)( void * dev );
 
 	// Geared for flash, but could be anything.  Note: If in flash, must also erase.
-	int (*BlockWrite64)( void * dev, uint32_t address_to_write, uint8_t * data );
+	int (*BlockWrite64)( void * dev, uint32_t address_to_write, const uint8_t * data );
 
 	// Returns positive if received text.
 	// Returns negative if error.
@@ -83,7 +88,7 @@ struct MiniChlinkFunctions
 	FlushLLCommands
 */
 
-inline static int IsAddressFlash( uint32_t addy ) { return ( addy & 0xff000000 ) == 0x08000000 || ( addy & 0x1FFFF000 ) == 0x1FFFF000; }
+inline static int IsAddressFlash( uint32_t addy ) { return ( addy & 0xff000000 ) == 0x08000000 || ( addy & 0x1FFF0000 ) == 0x1FFF0000; }
 
 #define HALT_MODE_HALT_AND_RESET    0
 #define HALT_MODE_REBOOT            1
@@ -104,6 +109,47 @@ struct ProgrammerStructBase
 
 #define MAX_FLASH_SECTORS 262144
 
+enum RiscVChip {
+	CHIP_UNKNOWN = 0x00,
+	CHIP_CH32V10x = 0x01,
+	CHIP_CH57x = 0x02,
+	CHIP_CH56x = 0x03,
+	CHIP_CH32V20x = 0x05,
+	CHIP_CH32V30x = 0x06,
+	CHIP_CH58x = 0x07,
+	CHIP_CH32V003 = 0x09,
+	CHIP_CH59x = 0x0b,
+	CHIP_CH643 = 0x0c,
+	CHIP_CH32X03x = 0x0d,
+	CHIP_CH32L10x = 0x0e,
+	CHIP_CH564 = 0x0f,
+
+
+	CHIP_CH32V002 = 0x22,
+	CHIP_CH32V004 = 0x24,
+	CHIP_CH32V005 = 0x25,
+	CHIP_CH32V006 = 0x26,
+
+	CHIP_CH645 = 0x46,
+	CHIP_CH641 = 0x49,
+	CHIP_CH32V317 = 0x86,
+};
+
+enum RAMSplit {
+	// For supported V30x and some V20x devices
+	FLASH_192_RAM_128 = 0x00,
+	FLASH_224_RAM_96  = 0x01,
+	FLASH_256_RAM_64  = 0x02,
+	FLASH_288_RAM_32  = 0x03,
+
+	// For some V20x devices
+	FLASH_128_RAM_64  = 0x10,
+	FLASH_144_RAM_48  = 0x11,
+	FLASH_160_RAM_32  = 0x12,
+
+	FLASH_DEFAULT = 0xFF,
+};
+
 struct InternalState
 {
 	uint32_t statetag;
@@ -116,8 +162,10 @@ struct InternalState
 	uint32_t ram_size;
 	int sector_size;
 	int flash_size;
-	int target_chip_type; // 0 for unknown (or 003), otherwise a part number.
+	enum RiscVChip target_chip_type;
+	uint32_t target_chip_id;
 	uint8_t flash_sector_status[MAX_FLASH_SECTORS];  // 0 means unerased/unknown. 1 means erased.
+	int nr_registers_for_debug; // Updated by PostSetupConfigureInterface
 };
 
 
@@ -137,6 +185,7 @@ struct InternalState
 #define DMPROGBUF5     0x25
 #define DMPROGBUF6     0x26
 #define DMPROGBUF7     0x27
+#define DMHALTSUM0     0x40
 
 #define DMCPBR       0x7C
 #define DMCFGR       0x7D
@@ -154,6 +203,27 @@ struct InternalState
 	#define DLLDECORATE
 #endif
 
+#ifndef TERMINAL_INPUT_BUFFER
+#define TERMINAL_INPUT_BUFFER 0
+#endif
+
+#define TERMINAL_BUFFER_SIZE 512
+
+#define STR_(x) #x
+#define STR(x) STR_(x)
+
+#ifndef TERMINAL_ACCENT_COLOR
+#define TERMINAL_ACCENT_COLOR 5;208 // Chose color from predefined palette
+// #define TERMINAL_ACCENT_COLOR 2;180;11;64  // Use R;G;B for color (can't be dimmed though)
+#endif
+
+#define TERMIANL_INPUT_SENT "\x1b[1F\x1b[2K\x1b[2K\033[38;" STR(TERMINAL_ACCENT_COLOR) "m> "
+#define TERMINAL_SEND_LABEL "\n\x1b[2K\033[7m\033[1m\033[38;" STR(TERMINAL_ACCENT_COLOR) "mSend:\x1b[0m "
+#define TERMINAL_SEND_BUSY "\n\x1b[2K\033[7m\033[1m\033[2m\033[38;" STR(TERMINAL_ACCENT_COLOR) "mSend:\x1b[0m "
+#define TERMINAL_CLEAR_PREV "\x1b[1F\x1b[2K"
+#define TERMINAL_CLEAR_CUR "\x1b[2K\x1b[F"
+#define TERMINAL_DIM "\x1b[2m"
+
 /* initialization hints for init functions */
 /* could be expanded with more in the future (e.g., PID/VID hints, priorities, ...)*/
 /* not all init functions currently need these hints. */
@@ -169,7 +239,7 @@ extern struct MiniChlinkFunctions MCF;
 void * TryInit_WCHLinkE(void);
 void * TryInit_ESP32S2CHFUN(void);
 void * TryInit_NHCLink042(void);
-void * TryInit_B003Fun(void);
+void * TryInit_B003Fun(uint32_t id);
 void * TryInit_Ardulink(const init_hints_t*);
 
 // Returns 0 if ok, populated, 1 if not populated.
